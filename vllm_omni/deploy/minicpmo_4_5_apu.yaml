@@ -53,8 +53,8 @@ stages:
     seed: 42
     detokenize: true
     repetition_penalty: 1.0
-  max_model_len: 8192
-  attention_backend: TRITON_ATTN
+  max_model_len: 32768
+  attention_backend: ROCM_SEGMENTED_ATTN
 - stage_id: 1
   max_num_seqs: 1
   gpu_memory_utilization: 0.12
