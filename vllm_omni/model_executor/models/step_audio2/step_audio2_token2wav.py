@@ -251,6 +251,14 @@ class StepAudio2Token2WavCore(nn.Module):
         if _enc is not None and isinstance(getattr(_enc, "freqs_cis", None), torch.Tensor):
             _enc.freqs_cis = _enc.freqs_cis.to(self.device)
 
+        try:
+            # stepaudio2-minicpmo vendors cosyvoice2 under stepaudio2.*; alias the
+            # top-level ``cosyvoice2.*`` names flow.yaml references.
+            from stepaudio2.token2wav import _setup_cosyvoice2_alias
+
+            _setup_cosyvoice2_alias()
+        except ImportError:
+            pass
         with open(f"{self.model_path}/flow.yaml") as f:
             configs = load_hyperpyyaml(f)
         self._flow = configs["flow"]

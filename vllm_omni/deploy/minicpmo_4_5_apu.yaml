@@ -1,0 +1,92 @@
+pipeline: minicpmo_4_5
+async_chunk: true
+session_mode: duplex
+duplex_session:
+  max_sessions: 1
+trust_remote_code: true
+enable_prefix_caching: false
+connectors:
+  connector_of_shared_memory:
+    name: SharedMemoryConnector
+    extra:
+      connector_get_sleep_s: 0.01
+      connector_get_max_wait_first_chunk: 3000
+      connector_get_max_wait: 300
+      codec_chunk_frames: 25
+      codec_left_context_frames: 3
+      enable_hift_graph: true
+      hift_graph_continuation_frames:
+      - 4
+      - 28
+      hift_graph_exact_batch_sizes:
+      - 1
+      enable_cfm_graph: true
+      cfm_fused_body: true
+      enable_code2wav_encoder_graph: true
+      code2wav_encoder_graph_rows: 4
+      code2wav_encoder_max_graphs: 12
+      code2wav_encoder_capture_after: 8
+      max_graph_batch: 32
+      micro_batch_size: 4
+      cfm_precapture_empty_cache: true
+      cfm_max_graphs: 32
+      token2wav_spk_cpu_reference: true
+stages:
+- stage_id: 0
+  max_num_seqs: 1
+  gpu_memory_utilization: 0.5
+  enforce_eager: false
+  enable_prefix_caching: false
+  tensor_parallel_size: 1
+  max_num_batched_tokens: 4096
+  devices: '0'
+  interleave_mm_strings: true
+  limit_mm_per_prompt:
+    image: 2
+    audio: 16
+    video: 0
+  default_sampling_params:
+    temperature: 0.0
+    top_p: 1.0
+    top_k: -1
+    max_tokens: 2048
+    seed: 42
+    detokenize: true
+    repetition_penalty: 1.0
+  max_model_len: 8192
+  attention_backend: TRITON_ATTN
+- stage_id: 1
+  max_num_seqs: 1
+  gpu_memory_utilization: 0.12
+  enforce_eager: false
+  max_num_batched_tokens: 8192
+  max_model_len: 4096
+  devices: '0'
+  output_connectors:
+    to_stage_2: connector_of_shared_memory
+  default_sampling_params:
+    temperature: 0.8
+    top_p: 0.85
+    top_k: 25
+    repetition_penalty: 1.05
+    min_tokens: 50
+    max_tokens: 4096
+    seed: 42
+    detokenize: false
+  kv_cache_memory_bytes: 2147483648
+- stage_id: 2
+  max_num_seqs: 1
+  gpu_memory_utilization: 0.15
+  enforce_eager: true
+  enable_chunked_prefill: false
+  max_num_batched_tokens: 65536
+  max_model_len: 65536
+  devices: '0'
+  input_connectors:
+    from_stage_1: connector_of_shared_memory
+  default_sampling_params:
+    temperature: 0.0
+    top_p: 1.0
+    top_k: -1
+    max_tokens: 65536
+    detokenize: true
