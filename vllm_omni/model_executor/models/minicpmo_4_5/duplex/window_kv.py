@@ -99,6 +99,7 @@ import functools
 from typing import Any
 
 import torch
+from vllm.logger import init_logger
 from vllm.v1.kv_cache_interface import KVCacheSpec, SlidingWindowSpec
 from vllm.v1.kv_cache_spec_registry import register_kv_cache_spec
 
@@ -113,6 +114,8 @@ from vllm_omni.model_executor.models.minicpmo_4_5.duplex.window_plan import (
     cdiv,
     plan_position_reanchor,
 )
+
+logger = init_logger(__name__)
 
 #: Default block size for sliding window on CUDA. Hardware like Ascend NPU may
 #: use larger page sizes (e.g. 128).
@@ -912,6 +915,10 @@ class MiniCPMO45DuplexWorkerHelper:
             if mrope_pos is None:
                 assert_uniform_position_shift(positions, plan.moved_from)
 
+            logger.info(
+                "duplex re-anchor req=%s delta=%d moved_from=%d rotating=%d",
+                req_id, plan.delta, plan.moved_from, positions.numel(),
+            )
             if positions.numel() > 0 and hasattr(runner, "kv_caches") and runner.kv_caches:
                 inv_freq = cls.get_rope_inv_freq(runner)
                 kv_groups = getattr(runner, "kv_cache_group_ids", None)
