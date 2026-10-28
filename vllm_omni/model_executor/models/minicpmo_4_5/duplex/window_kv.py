@@ -456,6 +456,15 @@ def rotate_cached_keys(
 
     expected_head_dim = inv_freq.numel() * 2
     last_dim = k_pool.shape[-1]
+    if (
+        k_pool.shape[1] == 2
+        and last_dim not in (expected_head_dim, 2 * expected_head_dim)
+        and last_dim % expected_head_dim == 0
+    ):
+        # ROCm token-major (segmented) layout:
+        # (num_blocks, 2, block_size, num_kv_heads * head_dim)
+        k_pool = k_pool[:, 0].unflatten(-1, (last_dim // expected_head_dim, expected_head_dim))
+        last_dim = expected_head_dim
     if last_dim not in (expected_head_dim, 2 * expected_head_dim):
         raise ValueError(
             f"expected head_dim={expected_head_dim} or {2 * expected_head_dim} for "
